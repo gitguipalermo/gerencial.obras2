@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão Completa de Obras e Empreitadas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 font-sans text-slate-800">
+
+    <!-- TELA DE LOGIN -->
+    <div id="telaLogin" class="min-h-screen flex items-center justify-center bg-slate-900 px-4">
+        <div class="bg-white p-8 rounded-xl shadow-xl w-full max-w-md space-y-6">
+            <div class="text-center">
+                <i class="fa-solid fa-building-shield text-4xl text-indigo-600 mb-2"></i>
+                <h2 class="text-xl font-bold text-slate-800">MasterObra Acesso</h2>
+                <p class="text-xs text-slate-500">Entre com suas credenciais para continuar</p>
+            </div>
+            <form id="formLogin" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Usuário / Login</label>
+                    <input type="text" id="loginUsuario" required placeholder="Ex: admin ou empreiteiro_joao" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Senha</label>
+                    <input type="password" id="loginSenha" required placeholder="********" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg text-sm transition shadow-sm">Entrar no Sistema</button>
+            </form>
+            <div class="bg-indigo-50 p-3 rounded-lg text-xs text-indigo-700 text-center">
+                <strong>Acesso Padrão Admin:</strong><br> Usuário: <code>admin</code> | Senha: <code>123456</code>
+            </div>
+        </div>
+    </div>
+
+    <!-- APLICAÇÃO PRINCIPAL -->
+    <div id="appContainer" class="hidden min-h-screen flex flex-col">
+        <!-- Cabeçalho -->
+        <header class="bg-indigo-700 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <h1 class="text-xl font-bold flex items-center gap-2"><i class="fa-solid fa-building-shield"></i> MasterObra Control</h1>
+                <div class="flex items-center gap-3">
+                    <span id="badgeUsuarioLogado" class="text-xs bg-indigo-600 px-3 py-1 rounded-full font-medium border border-indigo-500">Logado como: Admin</span>
+                    <button onclick="fazerLogout()" class="text-xs bg-rose-600 hover:bg-rose-700 px-3 py-1.5 rounded-lg font-medium transition shadow-sm flex items-center gap-1"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
+                </div>
+            </div>
+            <!-- Navegação por Abas Principais -->
+            <div class="container mx-auto px-4 flex gap-2 overflow-x-auto pb-2 text-sm font-medium">
+                <button onclick="mudarAbaPrincipal('obras')" id="btn-obras" class="tab-main-btn px-4 py-2 rounded-t-lg bg-white text-indigo-700 font-semibold transition"><i class="fa-solid fa-city mr-1"></i> Obras, Etapas & Adendos</button>
+                <button onclick="mudarAbaPrincipal('etapas')" id="btn-etapas" class="tab-main-btn px-4 py-2 rounded-t-lg text-indigo-100 hover:bg-indigo-600 transition"><i class="fa-solid fa-file-invoice-dollar mr-1"></i> Medições & Saldo</button>
+                <button onclick="mudarAbaPrincipal('materiais')" id="btn-materiais" class="tab-main-btn px-4 py-2 rounded-t-lg text-indigo-100 hover:bg-indigo-600 transition"><i class="fa-solid fa-boxes-stacked mr-1"></i> Controle de Materiais</button>
+                <button onclick="mudarAbaPrincipal('acessos')" id="btn-acessos" class="tab-main-btn admin-only px-4 py-2 rounded-t-lg text-indigo-100 hover:bg-indigo-600 transition"><i class="fa-solid fa-users-gear mr-1"></i> Gestão de Acessos</button>
+            </div>
+        </header>
+
+        <!-- Conteúdo Principal -->
+        <main class="container mx-auto px-4 py-6 max-w-5xl flex-1">
+
+            <!-- ABA 1: OBRAS, ETAPAS INICIAIS E ADENDOS -->
+            <section id="aba-obras" class="main-tab-content">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div id="colunaFormObra" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-1 h-fit">
+                        <h2 id="tituloFormObra" class="text-base font-bold mb-4 flex items-center gap-2 text-indigo-700"><i class="fa-solid fa-plus-circle"></i> Cadastrar Nova Obra</h2>
+                        <form id="formObra" class="space-y-3">
+                            <input type="hidden" id="editObraIndex" value="">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Nome da Obra / Projeto</label>
+                                <input type="text" id="nomeObra" required placeholder="Ex: Residencial Alphaville" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Empreiteiro Responsável</label>
+                                <input type="text" id="empreiteiroObra" required placeholder="Ex: Construtora Silva" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Valor Total Contratado (R$)</label>
+                                <input type="number" step="0.01" id="valorEmpreito" required placeholder="0.00" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-700 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Data de Cadastro</label>
+                                <input type="date" id="dataCadastroObra" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+
+                            <div class="border-t border-slate-200 pt-3 mt-2">
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="text-xs font-bold text-slate-700">Etapas Iniciais da Obra</label>
+                                    <button type="button" onclick="adicionarLinhaEtapaModal()" class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-2 py-1 rounded hover:bg-indigo-100 transition"><i class="fa-solid fa-plus"></i> Add Etapa</button>
+                                </div>
+                                <div id="containerEtapasModal" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+                                <p id="avisoSomaEtapas" class="text-[11px] text-slate-500 mt-2 font-medium">Soma das Etapas: R$ 0,00</p>
+                            </div>
+
+                            <div class="flex gap-2 pt-2">
+                                <button type="submit" id="btnSalvarObra" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition shadow-sm">Salvar Obra</button>
+                                <button type="button" id="btnCancelarObra" onclick="cancelarEdicaoObra()" class="hidden bg-slate-300 hover:bg-slate-400 text-slate-700 font-medium px-3 py-2 rounded-lg text-sm transition">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div id="colunaListaObras" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-2 space-y-6">
+                        <div>
+                            <h2 class="text-base font-bold mb-4 flex items-center gap-2 text-slate-800"><i class="fa-solid fa-hard-hat text-indigo-600"></i> Obras Cadastradas</h2>
+                            <div id="listaObras" class="space-y-4"></div>
+                        </div>
+
+                        <div id="secaoAdendo" class="border-t border-slate-200 pt-6">
+                            <h2 class="text-base font-bold mb-3 flex items-center gap-2 text-indigo-700"><i class="fa-solid fa-file-circle-plus"></i> Registrar Adendo de Serviço / Valor</h2>
+                            <form id="formAdendo" class="grid grid-cols-1 md:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Obra</label>
+                                    <select id="selectObraAdendo" required class="w-full border border-slate-300 rounded px-2 py-1.5 text-xs outline-none bg-white"></select>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Descrição do Adendo</label>
+                                    <input type="text" id="descAdendo" required placeholder="Ex: Ponto extra de luz" class="w-full border border-slate-300 rounded px-2 py-1.5 text-xs outline-none bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Valor do Adendo (R$)</label>
+                                    <input type="number" step="0.01" id="valorAdendo" required placeholder="0.00" class="w-full border border-slate-300 rounded px-2 py-1.5 text-xs outline-none bg-white font-medium">
+                                </div>
+                                <div class="flex items-end">
+                                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-1.5 rounded text-xs transition shadow-sm"><i class="fa-solid fa-plus"></i> Adicionar Adendo</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ABA 2: MEDIÇÕES & SALDO (SELEÇÃO EM CASCATA: EMPREITEIRO -> OBRA) -->
+            <section id="aba-etapas" class="main-tab-content hidden">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div id="colunaFormMedicao" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-1 h-fit">
+                        <h2 class="text-base font-bold mb-4 flex items-center gap-2 text-indigo-700"><i class="fa-solid fa-file-invoice-dollar"></i> Lançar Pagamento de Medição</h2>
+                        <form id="formMedicao" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Selecione o Empreiteiro</label>
+                                <select id="selectEmpreiteiroMedicao" required onchange="atualizarObrasDoEmpreiteiroMedicao()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Selecione a Obra</label>
+                                <select id="selectObraMedicao" required onchange="atualizarSelectEtapasObra()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Selecione a Etapa Correspondente</label>
+                                <select id="selectEtapaMedicao" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Valor Pago nesta Medição (R$)</label>
+                                <input type="number" step="0.01" id="valorPagoMedicao" required placeholder="0.00" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Data do Pagamento</label>
+                                <input type="date" id="dataPagamentoMedicao" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition shadow-sm">Registrar Medição</button>
+                        </form>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-2 space-y-6">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                            <h2 class="text-base font-bold flex items-center gap-2 text-slate-800"><i class="fa-solid fa-chart-line text-indigo-600"></i> Acompanhamento Financeiro</h2>
+                            <div class="flex items-center gap-2 w-full md:w-auto">
+                                <label class="text-xs font-semibold text-slate-600 whitespace-nowrap">Filtrar Empreiteiro:</label>
+                                <select id="filtroEmpreiteiroSaldo" onchange="renderizarTudo()" class="border border-slate-300 rounded-lg px-2 py-1.5 text-xs outline-none bg-slate-50 font-medium w-full md:w-48"></select>
+                            </div>
+                        </div>
+
+                        <!-- CARDS DE RESUMO FINANCEIRO -->
+                        <div class="grid grid-cols-4 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            <div>
+                                <span class="text-[10px] text-slate-500 block font-medium">Valor Contrato</span>
+                                <span id="cardValorBase" class="text-xs md:text-sm font-bold text-slate-800">R$ 0,00</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-500 block font-medium">Adendos (+)</span>
+                                <span id="cardValorAdendos" class="text-xs md:text-sm font-bold text-emerald-600">R$ 0,00</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-500 block font-medium">Total Pago</span>
+                                <span id="cardTotalPago" class="text-xs md:text-sm font-bold text-indigo-600">R$ 0,00</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-500 block font-medium">Saldo Restante</span>
+                                <span id="cardSaldoRestante" class="text-xs md:text-sm font-bold text-emerald-600">R$ 0,00</span>
+                            </div>
+                        </div>
+
+                        <!-- LISTA DE OBRAS E MEDIÇÕES DO EMPREITEIRO SELECIONADO -->
+                        <div id="listaEtapasResumo" class="space-y-4 pt-2"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ABA 3: CONTROLE DE MATERIAIS -->
+            <section id="aba-materiais" class="main-tab-content hidden">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                    <div class="flex border-b border-slate-200 gap-4 text-sm font-semibold overflow-x-auto pb-1">
+                        <button onclick="mudarSubAbaMateriais('solicitar')" id="subbtn-solicitar" class="subtab-btn pb-2 text-indigo-600 border-b-2 border-indigo-600 transition whitespace-nowrap"><i class="fa-solid fa-cart-plus mr-1"></i> 1. Solicitar Material</button>
+                        <button onclick="mudarSubAbaMateriais('catalogo')" id="subbtn-catalogo" class="subtab-btn pb-2 text-slate-500 hover:text-indigo-600 transition whitespace-nowrap"><i class="fa-solid fa-list mr-1"></i> Catálogo de Materiais</button>
+                        <button onclick="mudarSubAbaMateriais('entregar')" id="subbtn-entregar" class="subtab-btn pb-2 text-slate-500 hover:text-indigo-600 transition whitespace-nowrap"><i class="fa-solid fa-truck-fast mr-1"></i> 2. Registrar Entrega</button>
+                        <button onclick="mudarSubAbaMateriais('conferir')" id="subbtn-conferir" class="subtab-btn pb-2 text-slate-500 hover:text-indigo-600 transition whitespace-nowrap"><i class="fa-solid fa-clipboard-check mr-1"></i> 3. Conferência por Obra</button>
+                        <button onclick="mudarSubAbaMateriais('estoque')" id="subbtn-estoque" class="subtab-btn pb-2 text-slate-500 hover:text-indigo-600 transition whitespace-nowrap"><i class="fa-solid fa-warehouse mr-1"></i> 4. Estoque por Obra</button>
+                    </div>
+
+                    <!-- Sub-Aba: Solicitar -->
+                    <div id="subaba-solicitar" class="subtab-content space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 h-fit">
+                                <h3 id="tituloFormSolicitacao" class="text-sm font-bold mb-3 flex items-center gap-2 text-indigo-700"><i class="fa-solid fa-cart-plus"></i> Novo Pedido de Material</h3>
+                                <form id="formSolicitarMaterial" class="space-y-3">
+                                    <input type="hidden" id="editSolicitacaoIndex" value="">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Selecione a Obra</label>
+                                        <select id="selectObraSolicitacao" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none"></select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Descrição do Material</label>
+                                        <input type="text" id="descSolicitacao" list="listaCatalogoDatalist" required placeholder="Digite ou selecione..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none">
+                                        <datalist id="listaCatalogoDatalist"></datalist>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Quantidade Pedida</label>
+                                        <input type="number" step="any" id="qtdPedida" required placeholder="0" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Data do Pedido</label>
+                                        <input type="date" id="dataPedido" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none">
+                                    </div>
+                                    <div class="flex gap-2 pt-2">
+                                        <button type="submit" id="btnSalvarSolicitacao" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition">Salvar Pedido</button>
+                                        <button type="button" id="btnCancelarSolicitacao" onclick="cancelarEdicaoSolicitacao()" class="hidden bg-slate-300 hover:bg-slate-400 text-slate-700 font-medium px-3 py-2 rounded-lg text-sm transition">Cancelar</button>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="md:col-span-2 space-y-3">
+                                <h3 class="text-sm font-bold text-slate-800">Lista de Materiais Solicitados (Z-A)</h3>
+                                <div id="listaSolicitacoes" class="space-y-3"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Aba: Catálogo -->
+                    <div id="subaba-catalogo" class="subtab-content hidden space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 h-fit">
+                                <h3 class="text-sm font-bold mb-3 flex items-center gap-2 text-indigo-700"><i class="fa-solid fa-square-plus"></i> Inserir Novo Material</h3>
+                                <form id="formNovoCatalogo" class="space-y-3">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nome / Descrição</label>
+                                        <input type="text" id="descNovoCatalogo" required placeholder="Ex: Argamassa" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none">
+                                    </div>
+                                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition">Adicionar ao Catálogo</button>
+                                </form>
+                            </div>
+                            <div class="md:col-span-2 space-y-3">
+                                <h3 class="text-sm font-bold text-slate-800">Catálogo Geral (Z-A)</h3>
+                                <div id="listaCatalogoGeral" class="space-y-2"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Aba: Entregas -->
+                    <div id="subaba-entregar" class="subtab-content hidden space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 h-fit">
+                                <h3 class="text-sm font-bold mb-3 flex items-center gap-2 text-emerald-700"><i class="fa-solid fa-truck-fast"></i> Registrar Chegada</h3>
+                                <form id="formRegistrarEntrega" class="space-y-3">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Selecione o Material</label>
+                                        <select id="selectMaterialParaEntrega" required onchange="preencherDadosItemEntrega()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none"></select>
+                                    </div>
+                                    <div id="infoItemSelecionado" class="text-xs text-slate-500 bg-white p-2.5 rounded border border-slate-200">Selecione um material.</div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Quantidade Entregue Agora</label>
+                                        <input type="number" step="any" id="qtdEntregueAgora" required placeholder="0" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Data da Entrega</label>
+                                        <input type="date" id="dataEntregaEfetiva" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none">
+                                    </div>
+                                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg text-sm transition">Confirmar Entrega</button>
+                                </form>
+                            </div>
+                            <div class="md:col-span-2 space-y-3">
+                                <h3 class="text-sm font-bold text-slate-800">Histórico de Entregas</h3>
+                                <div id="listaEntregasHistorico" class="space-y-3"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Aba: Conferência -->
+                    <div id="subaba-conferir" class="subtab-content hidden space-y-4">
+                        <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-clipboard-check text-indigo-600"></i> Conferência por Obra</h3>
+                            <div>
+                                <select id="filtroObraConferencia" onchange="renderizarTudo()" class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs bg-white font-medium outline-none"></select>
+                            </div>
+                        </div>
+                        <div id="tabelaConferenciaMateriais" class="space-y-3"></div>
+                    </div>
+
+                    <!-- Sub-Aba: Estoque por Obra -->
+                    <div id="subaba-estoque" class="subtab-content hidden space-y-4">
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-warehouse text-indigo-600"></i> Controle de Estoque, Uso e Pendências por Obra</h3>
+                                <p class="text-xs text-slate-500">Informe o quanto foi **usado** no canteiro em uma data para calcular o **Saldo em Estoque** atualizado.</p>
+                            </div>
+                            <div class="flex items-center gap-3 w-full md:w-auto">
+                                <div>
+                                    <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">Obra</label>
+                                    <select id="filtroObraEstoqueFisico" onchange="renderizarEstoqueFisico()" class="border border-slate-300 rounded-lg px-2 py-1.5 text-xs bg-white font-medium outline-none"></select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">Data de Apontamento</label>
+                                    <input type="date" id="dataEstoqueFisico" onchange="renderizarEstoqueFisico()" class="border border-slate-300 rounded-lg px-2 py-1.5 text-xs bg-white font-medium outline-none">
+                                </div>
+                            </div>
+                        </div>
+                        <div id="tabelaEstoqueFisico" class="space-y-3"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ABA 4: GESTÃO DE ACESSOS -->
+            <section id="aba-acessos" class="main-tab-content hidden">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-1 h-fit">
+                        <h3 class="text-base font-bold mb-3 flex items-center gap-2 text-indigo-700"><i class="fa-solid fa-user-plus"></i> Criar Acesso para Empreiteiro</h3>
+                        <form id="formNovoUsuario" class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Nome do Usuário (Login)</label>
+                                <input type="text" id="novoLogin" required placeholder="Ex: joao_construtor" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Senha de Acesso</label>
+                                <input type="password" id="novaSenha" required placeholder="********" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Obras Permitidas:</label>
+                                <div id="listaCheckboxObras" class="space-y-1.5 max-h-48 overflow-y-auto border border-slate-200 p-2.5 rounded-lg bg-slate-50 text-xs"></div>
+                            </div>
+                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition">Criar Credencial</button>
+                        </form>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-2 space-y-4">
+                        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-users text-indigo-600"></i> Empreiteiros Cadastrados</h3>
+                        <div id="listaUsuariosCadastrados" class="space-y-3"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de Gestão & Autenticação -->
+    <script>
+        let obras = JSON.parse(localStorage.getItem('master_obras')) || [];
+        let medicoes = JSON.parse(localStorage.getItem('master_medicoes')) || [];
+        let materiais = JSON.parse(localStorage.getItem('master_materiais')) || [];
+        let catalogoMateriais = JSON.parse(localStorage.getItem('master_catalogo')) || [
+            "Saco de Cimento CP-II", "Areia Média (m³)", "Brita 01 (m³)", "Tijolo 8 furos", "Bloco de Concreto", "Vergalhão CA-50 10mm"
+        ];
+        
+        let estoqueFisico = JSON.parse(localStorage.getItem('master_estoque_fisico')) || [];
+
+        let usuarios = JSON.parse(localStorage.getItem('master_usuarios')) || [
+            { login: 'admin', senha: '123456', tipo: 'admin', obrasPermitidas: [] }
+        ];
+
+        let usuarioLogado = JSON.parse(sessionStorage.getItem('master_sessao_atual')) || null;
+
+        document.getElementById('dataCadastroObra').valueAsDate = new Date();
+        document.getElementById('dataPagamentoMedicao').valueAsDate = new Date();
+        document.getElementById('dataPedido').valueAsDate = new Date();
+        document.getElementById('dataEntregaEfetiva').valueAsDate = new Date();
+        document.getElementById('dataEstoqueFisico').valueAsDate = new Date();
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (usuarioLogado) {
+                entrarNoSistema();
+            }
+        });
+
+        document.getElementById('formLogin').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const loginInput = document.getElementById('loginUsuario').value.trim();
+            const senhaInput = document.getElementById('loginSenha').value.trim();
+
+            const userFound = usuarios.find(u => u.login === loginInput && u.senha === senhaInput);
+            if(userFound) {
+                usuarioLogado = userFound;
+                sessionStorage.setItem('master_sessao_atual', JSON.stringify(usuarioLogado));
+                entrarNoSistema();
+            } else {
+                alert("Usuário ou senha inválidos!");
+            }
+        });
+
+        function fazerLogout() {
+            sessionStorage.removeItem('master_sessao_atual');
+            usuarioLogado = null;
+            document.getElementById('appContainer').classList.add('hidden');
+            document.getElementById('telaLogin').classList.remove('hidden');
+            document.getElementById('formLogin').reset();
+        }
+
+        function entrarNoSistema() {
+            document.getElementById('telaLogin').classList.add('hidden');
+            document.getElementById('appContainer').classList.remove('hidden');
+            
+            const badge = document.getElementById('badgeUsuarioLogado');
+            if(usuarioLogado.tipo === 'admin') {
+                badge.innerText = `Logado como: Administrador`;
+                document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+            } else {
+                badge.innerText = `Logado como Empreiteiro: ${usuarioLogado.login}`;
+                document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+                document.getElementById('colunaFormObra').classList.add('hidden');
+                document.getElementById('secaoAdendo').classList.add('hidden');
+                document.getElementById('colunaFormMedicao').classList.add('hidden');
+                document.getElementById('colunaListaObras').classList.remove('md:col-span-2');
+                document.getElementById('colunaListaObras').classList.add('md:col-span-3');
+                mudarAbaPrincipal('obras');
+            }
+            renderizarTudo();
+        }
+
+        function mudarAbaPrincipal(abaId) {
+            document.querySelectorAll('.main-tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-main-btn').forEach(el => {
+                el.classList.remove('bg-white', 'text-indigo-700', 'font-semibold');
+                el.classList.add('text-indigo-100', 'hover:bg-indigo-600');
+            });
+            document.getElementById(`aba-${abaId}`).classList.remove('hidden');
+            const btnAtivo = document.getElementById(`btn-${abaId}`);
+            if(btnAtivo) {
+                btnAtivo.classList.remove('text-indigo-100', 'hover:bg-indigo-600');
+                btnAtivo.classList.add('bg-white', 'text-indigo-700', 'font-semibold');
+            }
+        }
+
+        function mudarSubAbaMateriais(subId) {
+            document.querySelectorAll('.subtab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.subtab-btn').forEach(el => {
+                el.classList.remove('text-indigo-600', 'border-b-2', 'border-indigo-600');
+                el.classList.add('text-slate-500');
+            });
+            document.getElementById(`subaba-${subId}`).classList.remove('hidden');
+            const subBtnAtivo = document.getElementById(`subbtn-${subId}`);
+            subBtnAtivo.classList.remove('text-slate-500');
+            subBtnAtivo.classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600');
+            
+            if(subId === 'estoque') {
+                renderizarEstoqueFisico();
+            }
+        }
+
+        function adicionarLinhaEtapaModal(nomeVal = '', valorVal = '') {
+            const container = document.getElementById('containerEtapasModal');
+            const div = document.createElement('div');
+            div.className = "flex gap-2 items-center etapa-item";
+            div.innerHTML = `
+                <input type="text" placeholder="Nome da Etapa" value="${nomeVal}" required class="etapa-nome flex-1 border border-slate-300 rounded px-2 py-1 text-xs outline-none bg-white">
+                <input type="number" step="0.01" placeholder="Valor R$" value="${valorVal}" required oninput="calcularSomaModalEtapas()" class="etapa-valor w-24 border border-slate-300 rounded px-2 py-1 text-xs outline-none bg-white">
+                <button type="button" onclick="this.parentElement.remove(); calcularSomaModalEtapas();" class="text-rose-500 hover:text-rose-700 px-1"><i class="fa-solid fa-xmark"></i></button>
+            `;
+            container.appendChild(div);
+            calcularSomaModalEtapas();
+        }
+
+        function calcularSomaModalEtapas() {
+            let soma = 0;
+            document.querySelectorAll('.etapa-valor').forEach(input => {
+                soma += parseFloat(input.value || 0);
+            });
+            document.getElementById('avisoSomaEtapas').innerText = `Soma das Etapas: R$ ${soma.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+            return soma;
+        }
+
+        function atualizarSelects() {
+            const selectsGenericos = [
+                document.getElementById('selectObraSolicitacao'),
+                document.getElementById('selectObraAdendo'),
+                document.getElementById('filtroObraConferencia'),
+                document.getElementById('filtroObraEstoqueFisico')
+            ];
+
+            const valoresAtuais = selectsGenericos.map(s => s ? s.value : "");
+            selectsGenericos.forEach(sel => { if(sel) sel.innerHTML = ''; });
+
+            let obrasDisponiveis = obras;
+            if(usuarioLogado && usuarioLogado.tipo === 'empreiteiro') {
+                obrasDisponiveis = obras.map((o, i) => ({ ...o, originalIndex: i }))
+                                        .filter(o => usuarioLogado.obrasPermitidas.includes(o.originalIndex));
+            } else {
+                obrasDisponiveis = obras.map((o, i) => ({ ...o, originalIndex: i }));
+            }
+
+            if(obrasDisponiveis.length === 0) {
+                selectsGenericos.forEach(sel => { if(sel) sel.innerHTML = '<option value="">Nenhuma obra disponível</option>'; });
+                document.getElementById('selectMaterialParaEntrega').innerHTML = '<option value="">Nenhum material pedido</option>';
+                return;
+            }
+
+            obrasDisponiveis.forEach((obra) => {
+                selectsGenericos.forEach((sel) => {
+                    if(!sel) return;
+                    const opt = document.createElement('option');
+                    opt.value = obra.originalIndex;
+                    opt.textContent = obra.nome;
+                    sel.appendChild(opt);
+                });
+            });
+
+            const filtroConf = document.getElementById('filtroObraConferencia');
+            if(filtroConf) {
+                const optTodos = document.createElement('option');
+                optTodos.value = "TODAS";
+                optTodos.textContent = "-- Todas as Obras --";
+                filtroConf.insertBefore(optTodos, filtroConf.firstChild);
+                if(filtroConf.value === "") filtroConf.value = "TODAS";
+            }
+
+            selectsGenericos.forEach((sel, sIdx) => {
+                if(sel && valoresAtuais[sIdx] !== "" && sel.querySelector(`option[value="${valoresAtuais[sIdx]}"]`)) {
+                    sel.value = valoresAtuais[sIdx];
+                }
+            });
+
+            atualizarSelectEmpreiteirosMedicao();
+            atualizarSelectMateriaisEntrega();
+            atualizarCatalogoDatalist();
+            atualizarCheckboxObrasAdmin();
+        }
+
+        function atualizarSelectEmpreiteirosMedicao() {
+            const selectEmp = document.getElementById('selectEmpreiteiroMedicao');
+            const filtroEmpSaldo = document.getElementById('filtroEmpreiteiroSaldo');
+            if(!selectEmp || !filtroEmpSaldo) return;
+
+            let empreiteirosMap = {};
+            obras.forEach(o => {
+                let emp = o.empreiteiro.trim() || "Sem Empreiteiro";
+                empreiteirosMap[emp] = true;
+            });
+            let listaEmps = Object.keys(empreiteirosMap);
+
+            let valAtualEmp = selectEmp.value;
+            let valAtualFiltro = filtroEmpSaldo.value;
+
+            selectEmp.innerHTML = '';
+            filtroEmpSaldo.innerHTML = '';
+
+            if(listaEmps.length === 0) {
+                selectEmp.innerHTML = '<option value="">Nenhum empreiteiro cadastrado</option>';
+                filtroEmpSaldo.innerHTML = '<option value="TODOS">-- Todos os Empreiteiros --</option>';
+                document.getElementById('selectObraMedicao').innerHTML = '<option value="">Sem obras</option>';
+                document.getElementById('selectEtapaMedicao').innerHTML = '<option value="">Sem etapas</option>';
+                return;
+            }
+
+            // Filtro com "TODOS" para o Acompanhamento Financeiro
+            let optTodos = document.createElement('option');
+            optTodos.value = "TODOS";
+            optTodos.textContent = "-- Todos os Empreiteiros --";
+            filtroEmpSaldo.appendChild(optTodos);
+
+            listaEmps.forEach(emp => {
+                let opt1 = document.createElement('option');
+                opt1.value = emp;
+                opt1.textContent = emp;
+                selectEmp.appendChild(opt1);
+
+                let opt2 = document.createElement('option');
+                opt2.value = emp;
+                opt2.textContent = emp;
+                filtroEmpSaldo.appendChild(opt2);
+            });
+
+            if(valAtualEmp && selectEmp.querySelector(`option[value="${valAtualEmp}"]`)) {
+                selectEmp.value = valAtualEmp;
+            }
+            if(valAtualFiltro && filtroEmpSaldo.querySelector(`option[value="${valAtualFiltro}"]`)) {
+                filtroEmpSaldo.value = valAtualFiltro;
+            } else {
+                filtroEmpSaldo.value = "TODOS";
+            }
+
+            atualizarObrasDoEmpreiteiroMedicao();
+        }
+
+        function atualizarObrasDoEmpreiteiroMedicao() {
+            const selectEmp = document.getElementById('selectEmpreiteiroMedicao');
+            const selectObra = document.getElementById('selectObraMedicao');
+            if(!selectEmp || !selectObra) return;
+
+            let empSelecionado = selectEmp.value;
+            let obraAtualValor = selectObra.value;
+            selectObra.innerHTML = '';
+
+            let obrasDoEmp = obras.map((o, originalIndex) => ({ ...o, originalIndex }))
+                                   .filter(o => (o.empreiteiro.trim() || "Sem Empreiteiro") === empSelecionado);
+
+            if(usuarioLogado && usuarioLogado.tipo === 'empreiteiro') {
+                obrasDoEmp = obrasDoEmp.filter(o => usuarioLogado.obrasPermitidas.includes(o.originalIndex));
+            }
+
+            if(obrasDoEmp.length === 0) {
+                selectObra.innerHTML = '<option value="">Nenhuma obra para este empreiteiro</option>';
+                document.getElementById('selectEtapaMedicao').innerHTML = '<option value="">Sem etapas</option>';
+                return;
+            }
+
+            obrasDoEmp.forEach(obra => {
+                let opt = document.createElement('option');
+                opt.value = obra.originalIndex;
+                opt.textContent = obra.nome;
+                selectObra.appendChild(opt);
+            });
+
+            if(obraAtualValor && selectObra.querySelector(`option[value="${obraAtualValor}"]`)) {
+                selectObra.value = obraAtualValor;
+            }
+
+            atualizarSelectEtapasObra();
+        }
+
+        function atualizarCheckboxObrasAdmin() {
+            const container = document.getElementById('listaCheckboxObras');
+            if(!container) return;
+            container.innerHTML = '';
+            if(obras.length === 0) {
+                container.innerHTML = '<span class="text-slate-400">Cadastre obras primeiro.</span>';
+                return;
+            }
+            obras.forEach((obra, idx) => {
+                container.innerHTML += `
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" value="${idx}" class="checkbox-obra-admin rounded">
+                        <span>${obra.nome}</span>
+                    </label>
+                `;
+            });
+        }
+
+        function atualizarCatalogoDatalist() {
+            const datalist = document.getElementById('listaCatalogoDatalist');
+            if(!datalist) return;
+            datalist.innerHTML = '';
+            const catalogoOrdenado = [...catalogoMateriais].sort((a, b) => b.localeCompare(a, 'pt-BR'));
+            catalogoOrdenado.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item;
+                datalist.appendChild(opt);
+            });
+        }
+
+        function atualizarSelectEtapasObra() {
+            const selectObra = document.getElementById('selectObraMedicao');
+            const selectEtapa = document.getElementById('selectEtapaMedicao');
+            if(!selectObra || !selectEtapa) return;
+            const obraIdx = selectObra.value;
+            selectEtapa.innerHTML = '';
+            if(obraIdx === "" || !obras[obraIdx] || !obras[obraIdx].etapas) {
+                selectEtapa.innerHTML = '<option value="">Selecione uma obra específica</option>';
+                return;
+            }
+            obras[obraIdx].etapas.forEach((etp, eIdx) => {
+                const opt = document.createElement('option');
+                opt.value = eIdx;
+                opt.textContent = `${etp.nome} (Previsto: R$ ${parseFloat(etp.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`;
+                selectEtapa.appendChild(opt);
+            });
+        }
+
+        function atualizarSelectMateriaisEntrega() {
+            const selectMat = document.getElementById('selectMaterialParaEntrega');
+            if(!selectMat) return;
+            selectMat.innerHTML = '';
+            
+            let materiaisDisponiveis = materiais.map((m, originalIndex) => ({ ...m, originalIndex }));
+            if(usuarioLogado && usuarioLogado.tipo === 'empreiteiro') {
+                materiaisDisponiveis = materiaisDisponiveis.filter(m => usuarioLogado.obrasPermitidas.includes(Number(m.obraIndex)));
+            }
+
+            if(materiaisDisponiveis.length === 0) {
+                selectMat.innerHTML = '<option value="">Nenhum material solicitado disponível</option>';
+                document.getElementById('infoItemSelecionado').innerText = "Nenhum material disponível para entrega.";
+                return;
+            }
+            materiaisDisponiveis.sort((a, b) => b.descricao.localeCompare(a.descricao, 'pt-BR'));
+
+            materiaisDisponiveis.forEach((mat) => {
+                const nomeObra = obras[mat.obraIndex] ? obras[mat.obraIndex].nome : 'Obra';
+                const opt = document.createElement('option');
+                opt.value = mat.originalIndex;
+                opt.textContent = `[${nomeObra}] ${mat.descricao} (Pediu: ${mat.qtdPedida} | Entregue: ${mat.qtdEntregue || 0})`;
+                selectMat.appendChild(opt);
+            });
+            preencherDadosItemEntrega();
+        }
+
+        function preencherDadosItemEntrega() {
+            const selectMat = document.getElementById('selectMaterialParaEntrega');
+            const infoBox = document.getElementById('infoItemSelecionado');
+            if(!selectMat || selectMat.value === "") {
+                if(infoBox) infoBox.innerText = "Selecione um material acima.";
+                return;
+            }
+            const mat = materiais[selectMat.value];
+            const nomeObra = obras[mat.obraIndex] ? obras[mat.obraIndex].nome : 'Obra';
+            infoBox.innerHTML = `<strong>Obra:</strong> ${nomeObra} | <strong>Material:</strong> ${mat.descricao}<br><strong>Qtd Pedida:</strong> ${mat.qtdPedida} | <strong>Já Entregue:</strong> ${mat.qtdEntregue || 0}`;
+        }
+
+        document.getElementById('formNovoUsuario').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const login = document.getElementById('novoLogin').value.trim();
+            const senha = document.getElementById('novaSenha').value.trim();
+
+            let obrasPermitidas = [];
+            document.querySelectorAll('.checkbox-obra-admin:checked').forEach(chk => {
+                obrasPermitidas.push(Number(chk.value));
+            });
+
+            if(usuarios.some(u => u.login === login)) {
+                alert("Este nome de usuário já existe!");
+                return;
+            }
+
+            usuarios.push({ login, senha, tipo: 'empreiteiro', obrasPermitidas });
+            localStorage.setItem('master_usuarios', JSON.stringify(usuarios));
+            document.getElementById('formNovoUsuario').reset();
+            renderizarTudo();
+            alert("Acesso de empreiteiro criado com sucesso!");
+        });
+
+        function excluirUsuario(index) {
+            if(confirm("Deseja revogar o acesso deste empreiteiro?")) {
+                usuarios.splice(index, 1);
+                localStorage.setItem('master_usuarios', JSON.stringify(usuarios));
+                renderizarTudo();
+            }
+        }
+
+        document.getElementById('formObra').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const editIndex = document.getElementById('editObraIndex').value;
+            const nome = document.getElementById('nomeObra').value;
+            const empreiteiro = document.getElementById('empreiteiroObra').value;
+            const valorBase = parseFloat(document.getElementById('valorEmpreito').value);
+            const dataCadastro = document.getElementById('dataCadastroObra').value;
+
+            let etapas = [];
+            let somaEtapas = 0;
+            document.querySelectorAll('.etapa-item').forEach(item => {
+                const nomeEtp = item.querySelector('.etapa-nome').value;
+                const valorEtp = parseFloat(item.querySelector('.etapa-valor').value || 0);
+                etapas.push({ nome: nomeEtp, valor: valorEtp });
+                somaEtapas += valorEtp;
+            });
+
+            if (etapas.length === 0) { alert("Adicione pelo menos uma etapa."); return; }
+            if (valorBase !== somaEtapas) {
+                alert(`Erro de validação financeira!\n\nO Valor Total Contratado (R$ ${valorBase.toFixed(2)}) não confere com a soma das Etapas (R$ ${somaEtapas.toFixed(2)}).`);
+                return;
+            }
+
+            if (editIndex === "") {
+                obras.push({ nome, empreiteiro, valorBase, dataCadastro, etapas, adendos: [] });
+            } else {
+                const adendosAntigos = obras[editIndex].adendos || [];
+                obras[editIndex] = { nome, empreiteiro, valorBase, dataCadastro, etapas, adendos: adendosAntigos };
+                cancelarEdicaoObra();
+            }
+
+            localStorage.setItem('master_obras', JSON.stringify(obras));
+            document.getElementById('formObra').reset();
+            document.getElementById('dataCadastroObra').valueAsDate = new Date();
+            document.getElementById('containerEtapasModal').innerHTML = '';
+            adicionarLinhaEtapaModal('Fundação', 0);
+            renderizarTudo();
+        });
+
+        document.getElementById('formAdendo').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const obraIdx = document.getElementById('selectObraAdendo').value;
+            const descricao = document.getElementById('descAdendo').value;
+            const valor = parseFloat(document.getElementById('valorAdendo').value);
+            if(obraIdx === "" || !obras[obraIdx]) return;
+            if(!obras[obraIdx].adendos) obras[obraIdx].adendos = [];
+            obras[obraIdx].adendos.push({ descricao, valor });
+            localStorage.setItem('master_obras', JSON.stringify(obras));
+            document.getElementById('formAdendo').reset();
+            renderizarTudo();
+        });
+
+        document.getElementById('formNovoCatalogo').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const desc = document.getElementById('descNovoCatalogo').value.trim();
+            if(desc !== "" && !catalogoMateriais.includes(desc)) {
+                catalogoMateriais.push(desc);
+                localStorage.setItem('master_catalogo', JSON.stringify(catalogoMateriais));
+                document.getElementById('formNovoCatalogo').reset();
+                renderizarTudo();
+                alert("Material inserido no catálogo com sucesso!");
+            } else {
+                alert("Este material já existe no catálogo ou o campo está vazio.");
+            }
+        });
+
+        document.getElementById('formSolicitarMaterial').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const editIndex = document.getElementById('editSolicitacaoIndex').value;
+            const obraIndex = document.getElementById('selectObraSolicitacao').value;
+            const descricao = document.getElementById('descSolicitacao').value.trim();
+            const qtdPedida = parseFloat(document.getElementById('qtdPedida').value);
+            const dataPedido = document.getElementById('dataPedido').value;
+
+            if(descricao !== "" && !catalogoMateriais.includes(descricao)) {
+                catalogoMateriais.push(descricao);
+                localStorage.setItem('master_catalogo', JSON.stringify(catalogoMateriais));
+            }
+
+            if(editIndex === "") {
+                materiais.push({ obraIndex, descricao, qtdPedida, qtdEntregue: 0, dataPedido, dataEntrega: '' });
+            } else {
+                materiais[editIndex].obraIndex = obraIndex;
+                materiais[editIndex].descricao = descricao;
+                materiais[editIndex].qtdPedida = qtdPedida;
+                materiais[editIndex].dataPedido = dataPedido;
+                cancelarEdicaoSolicitacao();
+            }
+
+            localStorage.setItem('master_materiais', JSON.stringify(materiais));
+            if(editIndex === "") {
+                document.getElementById('formSolicitarMaterial').reset();
+                document.getElementById('dataPedido').valueAsDate = new Date();
+            }
+            renderizarTudo();
+        });
+
+        document.getElementById('formRegistrarEntrega').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const matIdx = document.getElementById('selectMaterialParaEntrega').value;
+            const qtdEntregueAgora = parseFloat(document.getElementById('qtdEntregueAgora').value);
+            const dataEntregaEfetiva = document.getElementById('dataEntregaEfetiva').value;
+
+            if(matIdx === "" || !materiais[matIdx]) return;
+
+            let atualEntregue = parseFloat(materiais[matIdx].qtdEntregue || 0);
+            materiais[matIdx].qtdEntregue = atualEntregue + qtdEntregueAgora;
+            materiais[matIdx].dataEntrega = dataEntregaEfetiva;
+
+            localStorage.setItem('master_materiais', JSON.stringify(materiais));
+            document.getElementById('formRegistrarEntrega').reset();
+            document.getElementById('dataEntregaEfetiva').valueAsDate = new Date();
+            renderizarTudo();
+            alert("Entrega registrada com sucesso!");
+        });
+
+        function salvarUsoMaterial(obraIndex, nomeMaterial, totalEntregue) {
+            const dataVal = document.getElementById('dataEstoqueFisico').value;
+            const safeId = btoa(unescape(encodeURIComponent(nomeMaterial)));
+            const inputUsado = document.getElementById(`usado_o${obraIndex}_m${safeId}`);
+            const spanSaldo = document.getElementById(`saldo_o${obraIndex}_m${safeId}`);
+            
+            if(!inputUsado || !dataVal) return;
+            const qtdUsado = parseFloat(inputUsado.value || 0);
+
+            let saldoFinal = totalEntregue - qtdUsado;
+            if (spanSaldo) {
+                spanSaldo.innerText = saldoFinal;
+                spanSaldo.className = saldoFinal < 0 ? "font-bold text-rose-600 text-sm" : "font-bold text-indigo-600 text-sm";
+            }
+
+            let reg = estoqueFisico.find(e => e.obraIndex == obraIndex && e.data === dataVal && e.materialNome === nomeMaterial);
+            if(reg) {
+                reg.qtdUsado = qtdUsado;
+            } else {
+                estoqueFisico.push({ obraIndex: Number(obraIndex), data: dataVal, materialNome: nomeMaterial, qtdUsado: qtdUsado });
+            }
+
+            localStorage.setItem('master_estoque_fisico', JSON.stringify(estoqueFisico));
+        }
+
+        function renderizarEstoqueFisico() {
+            const selectObra = document.getElementById('filtroObraEstoqueFisico');
+            const inputData = document.getElementById('dataEstoqueFisico');
+            const container = document.getElementById('tabelaEstoqueFisico');
+            if(!container || !selectObra || !inputData) return;
+
+            container.innerHTML = '';
+            const obraIdx = selectObra.value;
+            const dataVal = inputData.value;
+
+            if(obraIdx === "" || !dataVal) {
+                container.innerHTML = '<p class="text-sm text-slate-400">Selecione uma obra e uma data.</p>';
+                return;
+            }
+
+            if(catalogoMateriais.length === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-400">Nenhum material cadastrado no catálogo geral.</p>';
+                return;
+            }
+
+            const catalogoOrdenado = [...catalogoMateriais].sort((a, b) => b.localeCompare(a, 'pt-BR'));
+            const nomeObra = obras[obraIdx] ? obras[obraIdx].nome : 'Obra';
+            let materiaisDaObra = materiais.filter(m => m.obraIndex == obraIdx);
+
+            let htmlTabela = `
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-2 flex justify-between items-center text-xs">
+                    <span class="font-bold text-indigo-700">Painel de Saldo de Materiais: ${nomeObra} (Data: ${formatarData(dataVal)})</span>
+                </div>
+                <div class="space-y-3">
+            `;
+
+            catalogoOrdenado.forEach((nomeMat) => {
+                let totalEntregue = 0;
+                let totalPendente = 0;
+
+                materiaisDaObra.filter(m => m.descricao.trim().toLowerCase() === nomeMat.trim().toLowerCase()).forEach(m => {
+                    let pedido = parseFloat(m.qtdPedida || 0);
+                    let entregue = parseFloat(m.qtdEntregue || 0);
+                    totalEntregue += entregue;
+                    let pendente = pedido - entregue;
+                    if(pendente > 0) totalPendente += pendente;
+                });
+
+                const reg = estoqueFisico.find(e => e.obraIndex == obraIdx && e.data === dataVal && e.materialNome === nomeMat);
+                const qtdUsadoSalvo = reg ? reg.qtdUsado : '';
+                const saldoAtual = totalEntregue - (reg ? parseFloat(reg.qtdUsado || 0) : 0);
+                const safeId = btoa(unescape(encodeURIComponent(nomeMat)));
+
+                htmlTabela += `
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white grid grid-cols-1 md:grid-cols-5 gap-3 items-center text-xs">
+                        <div>
+                            <span class="font-bold text-slate-800 text-sm block"><i class="fa-solid fa-box text-indigo-500 mr-1.5"></i> ${nomeMat}</span>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded border border-slate-100 flex justify-between md:flex-col">
+                            <span class="text-slate-500 font-medium">Entregue (Recebido):</span>
+                            <strong class="text-emerald-700 text-sm">${totalEntregue}</strong>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded border border-slate-100 flex justify-between md:flex-col">
+                            <span class="text-slate-500 font-medium">Pendente (Não Recebido):</span>
+                            <strong class="text-amber-600 text-sm">${totalPendente}</strong>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded border border-slate-100 flex flex-col gap-1">
+                            <label class="font-semibold text-slate-700 text-[11px]">Material Usado:</label>
+                            <input type="number" step="any" id="usado_o${obraIdx}_m${safeId}" value="${qtdUsadoSalvo}" oninput="salvarUsoMaterial(${obraIdx}, '${nomeMat.replace(/'/g, "\\'")}', ${totalEntregue})" placeholder="Qtd usada" class="w-full border border-slate-300 rounded px-2 py-1 text-xs outline-none font-bold text-rose-700 text-center bg-white">
+                        </div>
+                        <div class="bg-indigo-50/60 p-2 rounded border border-indigo-100 flex justify-between md:flex-col items-center">
+                            <span class="text-indigo-900 font-semibold text-[11px]">Saldo em Estoque:</span>
+                            <strong id="saldo_o${obraIdx}_m${safeId}" class="${saldoAtual < 0 ? 'text-rose-600' : 'text-indigo-600'} text-sm font-bold">${saldoAtual}</strong>
+                        </div>
+                    </div>
+                `;
+            });
+
+            htmlTabela += '</div>';
+            container.innerHTML = htmlTabela;
+        }
+
+        function excluirItemCatalogo(indexOriginal) {
+            if(confirm("Deseja remover este material do catálogo?")) {
+                catalogoMateriais.splice(indexOriginal, 1);
+                localStorage.setItem('master_catalogo', JSON.stringify(catalogoMateriais));
+                renderizarTudo();
+            }
+        }
+
+        function prepararEdicaoSolicitacao(index) {
+            const mat = materiais[index];
+            document.getElementById('editSolicitacaoIndex').value = index;
+            document.getElementById('selectObraSolicitacao').value = mat.obraIndex;
+            document.getElementById('descSolicitacao').value = mat.descricao;
+            document.getElementById('qtdPedida').value = mat.qtdPedida;
+            document.getElementById('dataPedido').value = mat.dataPedido;
+            document.getElementById('tituloFormSolicitacao').innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Editar Pedido`;
+            document.getElementById('btnSalvarSolicitacao').innerText = `Atualizar Pedido`;
+            document.getElementById('btnCancelarSolicitacao').classList.remove('hidden');
+            mudarSubAbaMateriais('solicitar');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelarEdicaoSolicitacao() {
+            document.getElementById('editSolicitacaoIndex').value = "";
+            document.getElementById('formSolicitarMaterial').reset();
+            document.getElementById('dataPedido').valueAsDate = new Date();
+            document.getElementById('tituloFormSolicitacao').innerHTML = `<i class="fa-solid fa-cart-plus"></i> Novo Pedido de Material`;
+            document.getElementById('btnSalvarSolicitacao').innerText = `Salvar Pedido`;
+            document.getElementById('btnCancelarSolicitacao').classList.add('hidden');
+        }
+
+        function excluirMaterial(index) {
+            if(confirm("Deseja excluir este pedido?")) {
+                materiais.splice(index, 1);
+                localStorage.setItem('master_materiais', JSON.stringify(materiais));
+                renderizarTudo();
+            }
+        }
+
+        function prepararEdicaoObra(index) {
+            const obra = obras[index];
+            document.getElementById('editObraIndex').value = index;
+            document.getElementById('nomeObra').value = obra.nome;
+            document.getElementById('empreiteiroObra').value = obra.empreiteiro;
+            document.getElementById('valorEmpreito').value = obra.valorBase;
+            document.getElementById('dataCadastroObra').value = obra.dataCadastro;
+
+            const container = document.getElementById('containerEtapasModal');
+            container.innerHTML = '';
+            obra.etapas.forEach(etp => { adicionarLinhaEtapaModal(etp.nome, etp.valor); });
+
+            document.getElementById('tituloFormObra').innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Editar Obra`;
+            document.getElementById('btnSalvarObra').innerText = `Atualizar Obra`;
+            document.getElementById('btnCancelarObra').classList.remove('hidden');
+            mudarAbaPrincipal('obras');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelarEdicaoObra() {
+            document.getElementById('editObraIndex').value = "";
+            document.getElementById('formObra').reset();
+            document.getElementById('dataCadastroObra').valueAsDate = new Date();
+            document.getElementById('containerEtapasModal').innerHTML = '';
+            adicionarLinhaEtapaModal('Fundação', 0);
+            document.getElementById('tituloFormObra').innerHTML = `<i class="fa-solid fa-plus-circle"></i> Cadastrar Nova Obra`;
+            document.getElementById('btnSalvarObra').innerText = `Salvar Obra`;
+            document.getElementById('btnCancelarObra').classList.add('hidden');
+        }
+
+        function excluirObra(index) {
+            if(confirm("Excluir esta obra removerá medições e materiais associados. Deseja continuar?")) {
+                obras.splice(index, 1);
+                medicoes = medicoes.filter(m => m.obraIndex != index);
+                materiais = materiais.filter(m => m.obraIndex != index);
+                estoqueFisico = estoqueFisico.filter(e => e.obraIndex != index);
+                localStorage.setItem('master_obras', JSON.stringify(obras));
+                localStorage.setItem('master_medicoes', JSON.stringify(medicoes));
+                localStorage.setItem('master_materiais', JSON.stringify(materiais));
+                localStorage.setItem('master_estoque_fisico', JSON.stringify(estoqueFisico));
+                renderizarTudo();
+            }
+        }
+
+        function excluirAdendo(obraIdx, adendoIdx) {
+            if(confirm("Remover este adendo?")) {
+                obras[obraIdx].adendos.splice(adendoIdx, 1);
+                localStorage.setItem('master_obras', JSON.stringify(obras));
+                renderizarTudo();
+            }
+        }
+
+        document.getElementById('formMedicao').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const obraIndex = document.getElementById('selectObraMedicao').value;
+            const etapaIndex = document.getElementById('selectEtapaMedicao').value;
+            const valorPago = parseFloat(document.getElementById('valorPagoMedicao').value);
+            const dataPagamento = document.getElementById('dataPagamentoMedicao').value;
+            medicoes.push({ obraIndex, etapaIndex, valorPago, dataPagamento });
+            localStorage.setItem('master_medicoes', JSON.stringify(medicoes));
+            document.getElementById('formMedicao').reset();
+            document.getElementById('dataPagamentoMedicao').valueAsDate = new Date();
+            renderizarTudo();
+        });
+
+        function excluirMedicao(index) {
+            medicoes.splice(index, 1);
+            localStorage.setItem('master_medicoes', JSON.stringify(medicoes));
+            renderizarTudo();
+        }
+
+        function formatarData(dataStr) {
+            if (!dataStr) return '-';
+            const partes = dataStr.split('-');
+            if (partes.length !== 3) return dataStr;
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+
+        function renderizarTudo() {
+            atualizarSelects();
+
+            const divObras = document.getElementById('listaObras');
+            divObras.innerHTML = '';
+            
+            let obrasParaRenderizar = obras.map((o, originalIndex) => ({ ...o, originalIndex }));
+            if(usuarioLogado && usuarioLogado.tipo === 'empreiteiro') {
+                obrasParaRenderizar = obrasParaRenderizar.filter(o => usuarioLogado.obrasPermitidas.includes(o.originalIndex));
+            }
+
+            if(obrasParaRenderizar.length === 0) {
+                divObras.innerHTML = '<p class="text-sm text-slate-400">Nenhuma obra cadastrada ou liberada para o seu usuário.</p>';
+            }
+
+            obrasParaRenderizar.forEach((obra) => {
+                let htmlEtapas = obra.etapas.map(e => `<li class="text-xs text-slate-600">• ${e.nome}: <strong>R$ ${parseFloat(e.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></li>`).join('');
+                let totalAdendosObra = 0;
+                let htmlAdendos = '';
+                if(obra.adendos && obra.adendos.length > 0) {
+                    htmlAdendos = '<div class="mt-2 pt-2 border-t border-slate-200"><span class="text-[11px] font-bold text-emerald-700 block">Adendos Registrados:</span><ul class="space-y-1 mt-1">';
+                    obra.adendos.forEach((ad, adIdx) => {
+                        totalAdendosObra += parseFloat(ad.valor);
+                        htmlAdendos += `<li class="text-xs text-slate-600 flex justify-between items-center bg-white px-2 py-1 rounded border border-slate-100"><span>+ ${ad.descricao} (<strong>R$ ${parseFloat(ad.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>)</span> ${usuarioLogado.tipo === 'admin' ? `<button onclick="excluirAdendo(${obra.originalIndex}, ${adIdx})" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-trash-can text-[10px]"></i></button>` : ''}</li>`;
+                    });
+                    htmlAdendos += '</ul></div>';
+                }
+                let valorTotalFinal = parseFloat(obra.valorBase) + totalAdendosObra;
+
+                let botoesAcao = '';
+                if(usuarioLogado.tipo === 'admin') {
+                    botoesAcao = `
+                        <div class="flex gap-1">
+                            <button onclick="prepararEdicaoObra(${obra.originalIndex})" class="text-indigo-500 hover:text-indigo-700 text-sm p-1.5" title="Editar Obra"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="excluirObra(${obra.originalIndex})" class="text-rose-500 hover:text-rose-700 text-sm p-1.5" title="Excluir"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    `;
+                }
+
+                divObras.innerHTML += `
+                    <div class="p-4 border border-slate-200 rounded-lg bg-slate-50 space-y-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-base">${obra.nome}</h3>
+                                <p class="text-xs text-slate-500"><i class="fa-solid fa-user-tie mr-1"></i> Empreiteiro: <span class="font-medium text-slate-700">${obra.empreiteiro}</span> | Cadastro: ${formatarData(obra.dataCadastro)}</p>
+                            </div>
+                            ${botoesAcao}
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 bg-white p-3 rounded border border-slate-200">
+                            <div>
+                                <span class="text-[11px] font-bold text-slate-700 block mb-1">Etapas da Obra:</span>
+                                <ul class="space-y-0.5">${htmlEtapas}</ul>
+                            </div>
+                            <div class="text-right flex flex-col justify-center">
+                                <span class="text-xs text-slate-500">Valor Base: R$ ${parseFloat(obra.valorBase).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                ${totalAdendosObra > 0 ? `<span class="text-xs text-emerald-600 font-medium">Adendos: + R$ ${totalAdendosObra.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>` : ''}
+                                <span class="text-sm font-bold text-indigo-700 mt-1">Total Geral: R$ ${valorTotalFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                        </div>
+                        ${htmlAdendos}
+                    </div>
+                `;
+            });
+
+            // RENDERIZAÇÃO DA ABA DE MEDIÇÕES (FILTRADA POR EMPREITEIRO NO ACOMPANHAMENTO)
+            const filtroEmpSaldo = document.getElementById('filtroEmpreiteiroSaldo');
+            const empFiltroVal = filtroEmpSaldo ? filtroEmpSaldo.value : "TODAS";
+
+            let somaBaseGeral = 0, somaAdendosGeral = 0, somaPagoGeral = 0;
+            const divResumo = document.getElementById('listaEtapasResumo');
+            if(divResumo) {
+                divResumo.innerHTML = '';
+
+                let obrasFiltradasAcomp = obrasParaRenderizar.filter(obra => {
+                    let emp = obra.empreiteiro.trim() || "Sem Empreiteiro";
+                    return empFiltroVal === "TODOS" || emp === empFiltroVal;
+                });
+
+                if(obrasFiltradasAcomp.length === 0) {
+                    divResumo.innerHTML = '<p class="text-sm text-slate-400">Nenhuma obra encontrada para este empreiteiro.</p>';
+                } else {
+                    let htmlObrasLista = '';
+                    obrasFiltradasAcomp.forEach(obra => {
+                        let vBase = parseFloat(obra.valorBase || 0);
+                        let vAdendos = 0;
+                        if(obra.adendos) obra.adendos.forEach(ad => vAdendos += parseFloat(ad.valor || 0));
+                        let vTotalObra = vBase + vAdendos;
+
+                        somaBaseGeral += vBase;
+                        somaAdendosGeral += vAdendos;
+
+                        let vPagoObra = 0;
+                        let medicoesDestaObra = medicoes.map((m, originalIdx) => ({ ...m, originalIdx })).filter(m => m.obraIndex == obra.originalIndex);
+                        medicoesDestaObra.forEach(med => { vPagoObra += parseFloat(med.valorPago || 0); });
+                        somaPagoGeral += vPagoObra;
+
+                        let saldoObra = vTotalObra - vPagoObra;
+
+                        let htmlMedList = '';
+                        if(medicoesDestaObra.length > 0) {
+                            htmlMedList = '<div class="mt-2 pt-2 border-t border-slate-100"><span class="text-[10px] font-bold text-slate-500 block">Medições Pagas:</span><div class="space-y-1 mt-1">';
+                            medicoesDestaObra.forEach(med => {
+                                let nomeEtapa = (obra.etapas && obra.etapas[med.etapaIndex]) ? obra.etapas[med.etapaIndex].nome : 'Etapa';
+                                htmlMedList += `
+                                    <div class="flex justify-between items-center text-[11px] bg-slate-50 px-2 py-1 rounded">
+                                        <span>${nomeEtapa} - <strong class="text-emerald-600">R$ ${parseFloat(med.valorPago).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> (${formatarData(med.dataPagamento)})</span>
+                                        ${usuarioLogado.tipo === 'admin' ? `<button onclick="excluirMedicao(${med.originalIdx})" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-trash-can"></i></button>` : ''}
+                                    </div>
+                                `;
+                            });
+                            htmlMedList += '</div></div>';
+                        }
+
+                        htmlObrasLista += `
+                            <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-city text-indigo-600 mr-1.5"></i> ${obra.nome} <span class="text-[11px] text-slate-500 font-normal">(${obra.empreiteiro})</span></h4>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 text-center bg-white p-2 rounded border border-slate-100 text-[11px]">
+                                    <div>
+                                        <span class="text-slate-500 block">Contrato + Adendos</span>
+                                        <strong class="text-slate-800">R$ ${vTotalObra.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-500 block">Total Pago</span>
+                                        <strong class="text-indigo-600">R$ ${vPagoObra.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-500 block">Saldo Restante</span>
+                                        <strong class="${saldoObra < 0 ? 'text-rose-600' : 'text-emerald-600'}">R$ ${saldoObra.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                                    </div>
+                                </div>
+                                ${htmlMedList}
+                            </div>
+                        `;
+                    });
+                    divResumo.innerHTML = htmlObrasLista;
+                }
+
+                let saldoRestanteGeral = (somaBaseGeral + somaAdendosGeral) - somaPagoGeral;
+                document.getElementById('cardValorBase').innerText = `R$ ${somaBaseGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                document.getElementById('cardValorAdendos').innerText = `R$ ${somaAdendosGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                document.getElementById('cardTotalPago').innerText = `R$ ${somaPagoGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                
+                const cardSaldo = document.getElementById('cardSaldoRestante');
+                cardSaldo.innerText = `R$ ${saldoRestanteGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                cardSaldo.className = saldoRestanteGeral < 0 ? "text-xs md:text-sm font-bold text-rose-600" : "text-xs md:text-sm font-bold text-emerald-600";
+            }
+
+            const divCatalogo = document.getElementById('listaCatalogoGeral');
+            divCatalogo.innerHTML = catalogoMateriais.length === 0 ? '<p class="text-xs text-slate-400">Nenhum material no catálogo.</p>' : '';
+            const catalogoComIndice = catalogoMateriais.map((item, originalIndex) => ({ item, originalIndex }));
+            catalogoComIndice.sort((a, b) => b.item.localeCompare(a.item, 'pt-BR'));
+
+            catalogoComIndice.forEach(({ item, originalIndex }) => {
+                divCatalogo.innerHTML += `
+                    <div class="flex justify-between items-center bg-white px-3 py-2 rounded border border-slate-200 text-xs">
+                        <span class="font-medium text-slate-700"><i class="fa-solid fa-box text-indigo-500 mr-2"></i> ${item}</span>
+                        ${usuarioLogado.tipo === 'admin' ? `<button onclick="excluirItemCatalogo(${originalIndex})" class="text-rose-500 hover:text-rose-700 p-1" title="Excluir"><i class="fa-solid fa-trash-can"></i></button>` : ''}
+                    </div>
+                `;
+            });
+
+            const divSolicitacoes = document.getElementById('listaSolicitacoes');
+            divSolicitacoes.innerHTML = '';
+            
+            let materiaisParaRenderizar = materiais.map((m, originalIndex) => ({ ...m, originalIndex }));
+            if(usuarioLogado && usuarioLogado.tipo === 'empreiteiro') {
+                materiaisParaRenderizar = materiaisParaRenderizar.filter(m => usuarioLogado.obrasPermitidas.includes(Number(m.obraIndex)));
+            }
+            materiaisParaRenderizar.sort((a, b) => b.descricao.localeCompare(a.descricao, 'pt-BR'));
+
+            if(materiaisParaRenderizar.length === 0) {
+                divSolicitacoes.innerHTML = '<p class="text-sm text-slate-400">Nenhum pedido cadastrado.</p>';
+            }
+
+            let htmlHistoricoEntregas = '';
+            materiaisParaRenderizar.forEach((mat) => {
+                const nomeObra = obras[mat.obraIndex] ? obras[mat.obraIndex].nome : 'Obra';
+                divSolicitacoes.innerHTML += `
+                    <div class="p-3 border border-slate-200 rounded-lg bg-slate-50 flex justify-between items-center text-xs">
+                        <div>
+                            <span class="font-bold text-indigo-700">[${nomeObra}] ${mat.descricao}</span>
+                            <p class="text-slate-600 mt-0.5">Qtd Pedida: <strong>${mat.qtdPedida}</strong> | Pedido em: ${formatarData(mat.dataPedido)}</p>
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="prepararEdicaoSolicitacao(${mat.originalIndex})" class="text-indigo-600 hover:text-indigo-800 p-2" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button>
+                            ${usuarioLogado.tipo === 'admin' ? `<button onclick="excluirMaterial(${mat.originalIndex})" class="text-rose-500 hover:text-rose-700 p-2" title="Excluir"><i class="fa-solid fa-trash-can"></i></button>` : ''}
+                        </div>
+                    </div>
+                `;
+
+                if(mat.qtdEntregue > 0) {
+                    htmlHistoricoEntregas += `
+                        <div class="p-3 border border-slate-200 rounded-lg bg-emerald-50/50 flex justify-between items-center text-xs">
+                            <div>
+                                <span class="font-bold text-emerald-800">[${nomeObra}] ${mat.descricao}</span>
+                                <p class="text-slate-600 mt-0.5">Qtd Entregue Acumulada: <strong class="text-emerald-700">${mat.qtdEntregue}</strong> / ${mat.qtdPedida} | Última Entrega: ${formatarData(mat.dataEntrega)}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            document.getElementById('listaEntregasHistorico').innerHTML = htmlHistoricoEntregas === '' ? '<p class="text-sm text-slate-400">Nenhuma entrega registrada ainda.</p>' : htmlHistoricoEntregas;
+
+            const filtroConferencia = document.getElementById('filtroObraConferencia');
+            const obraConferenciaVal = filtroConferencia ? filtroConferencia.value : "TODAS";
+            const divConferencia = document.getElementById('tabelaConferenciaMateriais');
+            divConferencia.innerHTML = '';
+
+            const materiaisFiltrados = materiaisParaRenderizar.filter(m => obraConferenciaVal === "TODAS" || m.obraIndex == obraConferenciaVal);
+            if(materiaisFiltrados.length === 0) {
+                divConferencia.innerHTML = '<p class="text-sm text-slate-400">Nenhum material encontrado para conferência.</p>';
+            } else {
+                materiaisFiltrados.forEach(mat => {
+                    const nomeObra = obras[mat.obraIndex] ? obras[mat.obraIndex].nome : 'Obra';
+                    const qPedida = parseFloat(mat.qtdPedida || 0);
+                    const qEntregue = parseFloat(mat.qtdEntregue || 0);
+                    const saldoPendente = qPedida - qEntregue;
+                    const concluido = saldoPendente <= 0;
+                    const statusBadge = concluido ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold">Concluído</span>' : '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">Pendente</span>';
+
+                    divConferencia.innerHTML += `
+                        <div class="p-4 border border-slate-200 rounded-lg bg-slate-50 flex justify-between items-center text-xs">
+                            <div class="space-y-1">
+                                <span class="text-[10px] font-bold uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">${nomeObra}</span>
+                                <h4 class="font-bold text-slate-800 text-sm pt-1">${mat.descricao}</h4>
+                                <p class="text-slate-600">Pedido: <strong>${qPedida}</strong> | Entregue: <strong class="text-emerald-600">${qEntregue}</strong> | Saldo Pendente: <strong class="text-rose-600">${saldoPendente > 0 ? saldoPendente : 0}</strong></p>
+                                <p class="text-[11px] text-slate-400">Data Pedido: ${formatarData(mat.dataPedido)} ${mat.dataEntrega ? '| Última Entrega: ' + formatarData(mat.dataEntrega) : ''}</p>
+                            </div>
+                            <div>
+                                ${statusBadge}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            const divUsuarios = document.getElementById('listaUsuariosCadastrados');
+            if(divUsuarios) {
+                divUsuarios.innerHTML = '';
+                const empreiteirosCadastrados = usuarios.filter(u => u.tipo === 'empreiteiro');
+                if(empreiteirosCadastrados.length === 0) {
+                    divUsuarios.innerHTML = '<p class="text-sm text-slate-400">Nenhum empreiteiro cadastrado.</p>';
+                } else {
+                    empreiteirosCadastrados.forEach((usr) => {
+                        const obrasNomes = usr.obrasPermitidas.map(idx => obras[idx] ? obras[idx].nome : 'Obra Removida').join(', ') || 'Nenhuma obra vinculada';
+                        divUsuarios.innerHTML += `
+                            <div class="p-3 border border-slate-200 rounded-lg bg-slate-50 flex justify-between items-center text-xs">
+                                <div>
+                                    <span class="font-bold text-indigo-700 text-sm"><i class="fa-solid fa-user-tie mr-1"></i> ${usr.login}</span>
+                                    <p class="text-slate-500 mt-1"><strong>Obras Liberadas:</strong> ${obrasNomes}</p>
+                                </div>
+                                <button onclick="excluirUsuario(${usuarios.indexOf(usr)})" class="text-rose-500 hover:text-rose-700 p-2" title="Revogar Acesso"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        `;
+                    });
+                }
+            }
+
+            renderizarEstoqueFisico();
+        }
+
+        renderizarTudo();
+    </script>
+</body>
+</html>
